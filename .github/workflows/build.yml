@@ -30,13 +30,13 @@ jobs:
   test_linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
-    - run: rustup update
-    - run: cargo test --all-features
-      env:
-        RUST_BACKTRACE: 1
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: rustup update
+      - run: cargo test --all-features
+        env:
+          RUST_BACKTRACE: 1
 
   test_windows:
     runs-on: windows-latest
@@ -85,14 +85,22 @@ jobs:
   python_wheel_linux:
     runs-on: ubuntu-latest
     needs: python
+    strategy:
+      matrix:
+        architecture: ["x86_64", "i686"]
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+          architecture: ${{ matrix.architecture }}
       - uses: messense/maturin-action@v1
         with:
           manylinux: 2014
-          container: messense/manylinux2014-cross:x86_64
+          container: messense/manylinux2014-cross:${{ matrix.architecture }}
+          target: ${{ matrix.architecture }}
           command: build
           args: -m python/Cargo.toml --cargo-extra-args="--no-default-features --features vendored"
       - run: pip install pyoxigraph --no-index --find-links ../../target/wheels && python -m unittest
@@ -129,8 +137,8 @@ jobs:
       - run: Remove-Item -LiteralPath "C:\msys64\" -Force -Recurse
       - uses: messense/maturin-action@v1
         with:
-          command: build
           target: ${{ matrix.architecture }}
+          command: build
           args: -m python/Cargo.toml
       - run: pip install pyoxigraph --no-index --find-links ../../target/wheels && python -m unittest
         working-directory: ./python/tests
